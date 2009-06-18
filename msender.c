@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define version "2009-06-04"
+#define version "0.2"
 
 #define IP_LEN 16
 #define PORT_LEN 6
@@ -24,10 +24,14 @@
 
 void usage()
 {
-    printf("Usage: ./msender -s source -g group -p port -t ttl -l length  -c count\n");
-    printf(" Version: %s\n",version);
-    printf(" Default length is 256 bytes\n");
-    printf(" Default ttl is 1\n");
+    printf("Usage: ./msender -s source -g group -p port -t ttl -l length -c count\n");
+	printf(" -s source	the source ip\n");
+	printf(" -g group	the group ip\n");
+	printf(" -p port	the port\n");
+	printf(" -t ttl		the ttl, default ttl is 1\n");
+	printf(" -l length  the packet length, default length is 256 bytes\n");
+	printf(" -c count	the packet count, default count is unlimited\n");
+    printf(" Version	%s\n",version);
 }
 
 int

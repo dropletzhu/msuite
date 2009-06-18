@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define version "2009-06-04"
+#define version "0.2"
 
 #define IP_LEN 16
 #define PORT_LEN 6
@@ -24,8 +24,12 @@
 void usage()
 {
 	printf("Usage: ./mlistener -s source -g group -p port -l length \n");
-	printf(" Version: %s\n", version);
-	printf(" Default length is 256 bytes, should be consistent with msender\n");
+	printf(" -s souurce	use the source to select bind device\n");
+	printf(" -g group	the group to listen\n");
+	printf(" -p port	the port to listen\n");
+	printf(" -l length	the packet length, default length is 256 bytes,\n");
+	printf("		    it should be consistent with msender\n");
+	printf(" Version 	%s\n", version);
 }
 
 int
