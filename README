@@ -1,0 +1,39 @@
+1: Purpose
+ The msuite is a suite of tools for multicast test. It is released under  GPL.
+
+2: Topology
+2.1: Topology 1
+
+  +--------+        +---------+        +----------+
+  | source |--------| gateway |--------| receiver |
+  +--------+        +---------+        +----------+
+  				Topology 1
+
+  - turn on igmp on source and receiver
+  - turn on igmp and pim on gateway
+
+2.2: Topology 2
+
+                              Receiver 2
+                                 |
+                                 |
+                                 RP
+                             ----------
+                            /           \
+                           /             \
+                       IR I              IR II
+                         /                 \
+                        /                   \
+  Receiver 1 --- Source DR ----- IR III ----- Receiver DR --- Receiver 3
+                       |                        |
+                       |                        |
+                    Source                    Receiver 4 
+                Topology 2
+ 
+  - turn on igmp on source and receiver
+  - turn on igmp and pim on gateway
+
+3: Faqs
+
+4: Author information
+  dropletzhu@gmail.com

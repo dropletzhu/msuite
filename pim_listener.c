@@ -1,6 +1,10 @@
-/*
- * A simple PIM packet test tool
- * by dropletzhu 2009/4/14
+/**
+ * pim_listener.c: receive pim packet and print
+ *  dropletzhu@gmail.com
+ *
+ * ChangeLog
+ *  - 2009-06-19
+ *		- add version information
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,9 +82,20 @@ typedef struct _SPimRegHdr {
 } tSPimRegHdr;
 #endif
 
-#define BUF_LEN 256
+#define version "0.2"
+
+#define BUF_LEN 65535
 #define IP_LEN 16
 #define PORT_LEN 6
+
+void usage()
+{
+	printf("Usage: ./pim_linster -r rp -l length\n");
+	printf(" -r rp	rp address\n");
+	printf(" -l length	PIM packet size, should be consistent with\n");
+	printf("            pim_sender, default length is 256 bytes\n");
+	printf(" Version: %s\n",version);
+}
 
 /* Receive PIM packet */
 int
@@ -96,30 +111,33 @@ main (int argc, char* argv[])
 	int pim_null_reg = 0, pim_reg = 0, pim_reg_stop = 0;
 	int len,nbytes;
 	UINT2 *flags;
+	int length = 256;
 
     if (argc <= 1) {
-        printf("Usage: ./pim_linster -r rp\n");
+		usage();
         return 0;
     }
 
-    while ((ch = getopt(argc, argv, "r:")) != -1)
+    while ((ch = getopt(argc, argv, "r:l:")) != -1)
     {
         switch (ch)
         {
 			case 'r':
 				strncpy(rp, optarg, IP_LEN -1);
 				break;
-
+			case 'l':
+				length = atoi(optarg);
+				break;
         	default:
-        		printf("Usage: ./pim_linster -r rp\n");
-            return 0;
+				usage();
+            	return 0;
 		}
     }
 
 	sockfd = socket (PF_INET, SOCK_RAW, IPPROTO_PIM);
 	if( sockfd < 0 ) {
-			perror("socket\n");
-			return -1;
+		perror("socket\n");
+		return -1;
 	}
 
 	memset(&sin,0,sizeof(struct sockaddr_in));
@@ -127,8 +145,8 @@ main (int argc, char* argv[])
 	sin.sin_addr.s_addr = inet_addr (rp);
 
 	if (bind(sockfd, (struct sockaddr *) &sin, sizeof(sin)) < 0) {
-			perror("bind\n");
-			return -1;
+		perror("bind\n");
+		return -1;
 	}
 
 	len = sizeof(sin);
@@ -136,7 +154,7 @@ main (int argc, char* argv[])
     {
 		memset (datagram, 0, BUF_LEN);
 
-    	if ( (nbytes = recvfrom(sockfd, datagram,BUF_LEN, 0,(struct sockaddr *) &sin, &len)) < 0) {
+    	if ( (nbytes = recvfrom(sockfd, datagram,length, 0,(struct sockaddr *) &sin, &len)) < 0) {
 			perror("recvfrom\n");
 			return -1;
 		} else {

@@ -1,12 +1,12 @@
-/*
-* mlistener.c:  joins a multicast group and echoes all data it receives 
-* 				from the group to its stdout
-* dropletzhu@gmail.com
-*
-* ChangeLog
-* 	- 2009-06-04
-* 		- Show source and group address on console
-*/
+/**
+ * mlistener.c:  joins a multicast group and echoes all data it receives 
+ * 				from the group to its stdout
+ * dropletzhu@gmail.com
+ *
+ * ChangeLog
+ * 	- 2009-06-04
+ * 		- Show source and group address on console
+ */
 
 #include <sys/socket.h>
 #include <arpa/inet.h>

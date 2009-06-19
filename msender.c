@@ -1,5 +1,5 @@
-/*
- * sender.c: send multicast packet one per second
+/**
+ * msender.c: send multicast packet one per second
  *  dropletzhu@gamil.com
  *
  * ChangeLog
@@ -19,7 +19,6 @@
 
 #define IP_LEN 16
 #define PORT_LEN 6
-#define TTL_LEN 4
 #define BUF_LEN 65535
 
 void usage()

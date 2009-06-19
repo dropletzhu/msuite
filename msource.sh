@@ -2,12 +2,13 @@
 #
 # Function:
 #  - setup multiple source address
-#  - send multicast traffic from multiple address
+#  - send multicast traffic from multiple source address
+#  - verify mp2p sessions on gateway
 #
 
 if (( $# < 2 )) ;
 then
-	echo "./msource.sh group_address stream_count\n";
+	echo "./msource.sh group_address stream_count";
 	exit 0;
 fi
 

@@ -7,7 +7,7 @@
 
 if (( $# < 2 )) ;
 then
-	echo "./msource.sh {sender|listener} source stream_count";
+	echo "./mgroup.sh {sender|listener} source stream_count";
 	exit 0;
 fi
 
