@@ -28,7 +28,7 @@ void usage()
 	printf(" -g group	the group ip\n");
 	printf(" -p port	the port\n");
 	printf(" -t ttl		the ttl, default ttl is 1\n");
-	printf(" -l length  the packet length, default length is 256 bytes\n");
+	printf(" -l length	the packet length, default length is 256 bytes\n");
 	printf(" -c count	the packet count, default count is unlimited\n");
     printf(" Version	%s\n",version);
 }

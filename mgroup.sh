@@ -11,7 +11,7 @@ then
 	exit 0;
 fi
 
-count=0;
+count=1;
 
 if [ ${1} == "sender" ]; 
 then
@@ -23,9 +23,9 @@ then
 		do
 			./msender -s ${2} -g 224.1.${i}.${j} -p 5000 -c 2 -t 32
 			(( count += 1 ));
-			if (( ${count} >= ${3} ));
+			if (( ${count} > ${3} ));
 			then
-				echo "Create " ${3} ${count} "sender stream";
+				echo "Create " ${3} "sender stream";
 				exit 0;
 			fi
 		done
@@ -40,9 +40,9 @@ else
 			# send to background
 			./mlistener -s ${2} -g 224.1.${i}.${j} -p 5000 &
 			(( count += 1 ));
-			if (( ${count} >= ${3} ));
+			if (( ${count} > ${3} ));
 			then
-				echo "Create " ${3} ${count} "listener stream"
+				echo "Create " ${3} "listener stream"
 				exit 0;
 			fi
 		done

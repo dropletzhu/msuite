@@ -14,43 +14,43 @@ fi
 
 echo "Create " ${2} " multicast streams to " ${1} " source ip 1.0.0.1 ~ 1.0.200.200"
 
-count=0;
+count=1;
 
-for (( i = 0; i < 200; i++ ))
+for (( i = 0; i <= 200; i++ ))
 do
 	for (( j = 1; i <= 200; j++ ))
 	do
-		ifconfig eth1:${count} 1.0.${i}.${j} up
+		ifconfig eth1:${count} 1.0.${i}.${j} netmask 255.0.0.0
 		(( count += 1 ));
-		if (( ${count} >= ${2} ));
+		if (( ${count} > ${2} ));
 		then
-			echo "Create " ${2} ${count} "alias interface";
+			echo "Create " ${2} "alias interface";
 			break;
 		fi
 	done
 
-	if (( ${count} >= ${2} ));
+	if (( ${count} > ${2} ));
 	then
 		break;
 	fi
 done
 
-count=0;
+count=1;
 
-for (( i = 0; i < 200; i++ ))
+for (( i = 0; i <= 200; i++ ))
 do
 	for (( j = 1; j <= 200; j++ ))
 	do
 		./msender -s 1.0.${i}.${j} -g ${1} -p 5000 -c 2 -t 32
 		(( count += 1 ));
-		if (( ${count} >= ${2} ));
+		if (( ${count} > ${2} ));
 		then
-			echo "Create " ${2} ${count} " sender stream";
+			echo "Create " ${2} " sender stream";
 			break;
 		fi
 	done
 
-	if (( ${count} >= ${2} ));
+	if (( ${count} > ${2} ));
 	then
 		break;
 	fi

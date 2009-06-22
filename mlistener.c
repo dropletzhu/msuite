@@ -27,8 +27,7 @@ void usage()
 	printf(" -s souurce	use the source to select bind device\n");
 	printf(" -g group	the group to listen\n");
 	printf(" -p port	the port to listen\n");
-	printf(" -l length	the packet length, default length is 256 bytes,\n");
-	printf("		    it should be consistent with msender\n");
+	printf(" -l length	the packet length, default length is 256 bytes\n");
 	printf(" Version 	%s\n", version);
 }
 

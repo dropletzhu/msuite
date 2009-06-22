@@ -91,10 +91,9 @@ typedef struct _SPimRegHdr {
 void usage()
 {
 	printf("Usage: ./pim_linster -r rp -l length\n");
-	printf(" -r rp	rp address\n");
-	printf(" -l length	PIM packet size, should be consistent with\n");
-	printf("            pim_sender, default length is 256 bytes\n");
-	printf(" Version: %s\n",version);
+	printf(" -r rp      rp address\n");
+	printf(" -l length  PIM packet size, the default packet size is 256 bytes\n");
+	printf(" Version:   %s\n",version);
 }
 
 /* Receive PIM packet */
@@ -112,6 +111,7 @@ main (int argc, char* argv[])
 	int len,nbytes;
 	UINT2 *flags;
 	int length = 256;
+	int retcode, addrlen;
 
     if (argc <= 1) {
 		usage();
@@ -164,12 +164,12 @@ main (int argc, char* argv[])
 				flags = (UINT2*)(datagram + sizeof(struct ip) + 4 );
 				*flags = ntohs(*flags);
 				if( pim_reg_header->nulbit == 1 ) {
-					printf("Receiver PIM null register %d\n",pim_null_reg++);
+					printf("Receiver PIM null register %s: %d\n",rp,pim_null_reg++);
 				} else {
-					printf("Receiver PIM register %d\n",pim_reg++);
+					printf("Receiver PIM register %s: %d\n",rp,pim_reg++);
 				}
 			} else if( pim_header->msgtpe == PIMSM_REGISTER_STOP_MSG ) {
-				printf("Receiver PIM register-stop %d\n",pim_reg_stop++);
+				printf("Receiver PIM register-stop %s: %d\n",rp,pim_reg_stop++);
 			} else {
 				printf(" unknown type: %d, nbytes: %d\n", pim_header->msgtpe, nbytes);
 			}
