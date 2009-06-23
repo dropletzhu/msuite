@@ -48,7 +48,7 @@ then
 			(( count += 1 ));
 			if (( ${count} > ${3} ));
 			then
-				echo "Create " ${2} " PIM register stream ";
+				echo "Create " ${3} " PIM register stream ";
 				break;
 			fi
 		done
@@ -68,7 +68,7 @@ else
 			(( count += 1 ));
 			if (( ${count} > ${3} ));
 			then
-				echo "Create " ${2} " PIM register stream ";
+				echo "Create " ${3} " PIM register stream ";
 				break;
 			fi
 		done

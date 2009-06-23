@@ -33,6 +33,27 @@ typedef unsigned short  UINT2;
 typedef unsigned long   UINT4;
 typedef long            INT4;
 
+/* Defines for Address Families of the addresses */
+#define   PIMSM_ADDRFMLY_RESERVED         0
+#define   PIMSM_ADDRFMLY_IPV4             1
+#define   PIMSM_ADDRFMLY_IPV6             2
+#define   PIMSM_ADDRFMLY_NSAP             3
+#define   PIMSM_ADDRFMLY_HDLC             4
+#define   PIMSM_ADDRFMLY_BBN1822          5
+#define   PIMSM_ADDRFMLY_802              6
+#define   PIMSM_ADDRFMLY_E163             7
+#define   PIMSM_ADDRFMLY_E164             8
+#define   PIMSM_ADDRFMLY_F69              9
+#define   PIMSM_ADDRFMLY_X121            10
+#define   PIMSM_ADDRFMLY_IPX             11
+#define   PIMSM_ADDRFMLY_APPLETALK       12
+#define   PIMSM_ADDRFMLY_DECNET_IV       13
+#define   PIMSM_ADDRFMLY_BANYAN          14
+#define   PIMSM_ADDRFMLY_E164_NSAP       15
+
+/* Define for encoding type used for specific Address Family - IPV4 */
+#define   PIMSM_ENCTYPE_IPV4             0
+
 /* Definitions for the message type */
 #define  PIMSM_HELLO_MSG                             0
 #define  PIMSM_REGISTER_MSG                          1
@@ -277,7 +298,9 @@ int make_pim_register_stop()
 {
 	struct ip *iph;
 	struct _SPimHdr *pim_header;
+	struct _SPimSmUnAlignedRegStopMsg *register_stop;
 	char *header = datagram;
+	in_addr_t tmp_group, tmp_source;
 
 	if( has_local_source ) {
 		iph = (struct ip*)(header);
@@ -299,7 +322,19 @@ int make_pim_register_stop()
 	pim_header = (struct _SPimHdr*)(header);
 	pim_header->msgtpe = PIMSM_REGISTER_STOP_MSG;
 	pim_header->pimver = 2;
-	pim_header->u2Checksum = csum((unsigned short*)pim_header,(sizeof(struct _SPimHdr)+sizeof(tSPimEncGrpAddr) + sizeof(tSPimEncUnAlignedUcastAddr))>>1);
+	header += sizeof(struct _SPimHdr);
+
+	register_stop = (struct _SPimSmUnAlignedRegStopMsg*)header;
+	register_stop->EncGrpAddr.u1AddrFamily = PIMSM_ADDRFMLY_IPV4;
+	register_stop->EncGrpAddr.u1EncType = PIMSM_ENCTYPE_IPV4;
+	tmp_group = inet_addr(mcast_group);
+	memcpy(&(register_stop->EncGrpAddr.u4GrpAddr),&tmp_group,4);
+	register_stop->EncUcastAddr.u1AddrFamily = PIMSM_ADDRFMLY_IPV4;
+	register_stop->EncUcastAddr.u1EncType = PIMSM_ENCTYPE_IPV4;
+	tmp_source = inet_addr(mcast_source);
+	memcpy(&(register_stop->EncUcastAddr.u4UcastAddr),&tmp_source,4);
+
+	pim_header->u2Checksum = csum((unsigned short*)pim_header,(sizeof(struct _SPimHdr)+sizeof(struct _SPimSmUnAlignedRegStopMsg))>>1);
 
 	if( has_local_source ) {
 		iph->ip_sum = csum((unsigned short*)iph, length>>1);
