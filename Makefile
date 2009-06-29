@@ -1,9 +1,9 @@
 CC = gcc
 RM = rm
 TARGET = msender mlistener pim_sender pim_listener
-SCRIPTS = msource.sh mgroup.sh mpim_rp.sh mpim_source.sh
+SCRIPTS = msource.sh mgroup.sh mpim_rp.sh mpim_source.sh downalias.sh
 DOCS = README	
-VERSION = 0.2.1
+VERSION = 0.2.2
 
 CFLAGS = -fno-stack-protector
 
