@@ -1,9 +1,12 @@
 /**
- * mlistener.c:  joins a multicast group and echoes all data it receives 
- * 				from the group to its stdout
+ * mlistener.c  
+ *  joins a multicast group and echoes all data it receives 
+ *
  * dropletzhu@gmail.com
  *
  * ChangeLog
+ *  - 2009-06-29
+ *		- Signal handler for SIGINT, SIGKILL and SIGTERM
  * 	- 2009-06-04
  * 		- Show source and group address on console
  */
@@ -14,12 +17,18 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <signal.h>
 
-#define version "0.2"
-
+#define version "0.3"
 #define IP_LEN 16
 #define PORT_LEN 6
 #define BUF_LEN 65535
+
+unsigned int l_count = 0;
+/* map sender source ip's least two bytes to this array
+ * one to one mapping, do not check conflict
+ */
+unsigned int s_count[65535];
 
 void usage()
 {
@@ -31,14 +40,31 @@ void usage()
 	printf(" Version 	%s\n", version);
 }
 
+void term_handler(int signum)
+{
+	unsigned int s_total, i;
+
+	for( i = 0; i < 65535; i++ ) {
+		s_total += s_count[i];
+	}
+
+	printf("Total received:	%u\n", l_count);
+	printf("Total sent:	%u\n", s_total);
+	printf("Total lost:	%u\n", s_total - l_count);
+
+	exit(0);
+}
+
 int
 main (int argc, char *argv[])
 {
 	struct sockaddr_in addr;
-	int fd, nbytes, addrlen, ch, i = 0;
+	int fd, nbytes, addrlen, ch, i;
 	struct ip_mreq mreq;
 	char msgbuf[BUF_LEN], source[IP_LEN], group[IP_LEN], port[PORT_LEN];
 	int length = 256;
+	struct sigaction new_action, old_action;
+	char s_source[IP_LEN], s_group[IP_LEN];
 
 	if (argc <= 1)
 	{
@@ -101,6 +127,13 @@ main (int argc, char *argv[])
 		return -1;
 	}
 
+	new_action.sa_handler = term_handler;
+	sigemptyset(&new_action.sa_mask);
+	new_action.sa_flags = 0;
+	sigaction(SIGINT, &new_action, &old_action);
+	sigaction(SIGKILL, &new_action, &old_action);
+	sigaction(SIGTERM, &new_action, &old_action);
+
 	while (1)
 	{
 		memset(msgbuf, 0, BUF_LEN);
@@ -111,6 +144,8 @@ main (int argc, char *argv[])
 			perror ("recvfrom");
 			return -1;
 		}
-		printf ("Receiver %d -- %s\n", i++, msgbuf);
+		printf ("Receiver %d -- %s\n", l_count++, msgbuf);
+		sscanf (msgbuf,"Sender %[0-9.]->%[0-9.]: %d",s_source,s_group,&i);
+		s_count[atoi(s_source) & 0xFF] = i;
 	}
 }

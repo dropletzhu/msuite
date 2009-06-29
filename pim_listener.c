@@ -1,6 +1,8 @@
 /**
- * pim_listener.c: receive pim packet and print
- *  dropletzhu@gmail.com
+ * pim_listener.c
+ *   receive pim packet and print
+ *
+ * dropletzhu@gmail.com
  *
  * ChangeLog
  *  - 2009-06-19

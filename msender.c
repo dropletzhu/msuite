@@ -1,6 +1,8 @@
 /**
- * msender.c: send multicast packet one per second
- *  dropletzhu@gamil.com
+ * msender.c 
+ *  send multicast packet one per second
+ *
+ * dropletzhu@gamil.com
  *
  * ChangeLog
  *  - 2009-06-04

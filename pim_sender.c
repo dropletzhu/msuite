@@ -1,7 +1,8 @@
 /**
- * pim_sender.c: a pim packet generator, send pim packet one per
- *               second
- *  dropletzhu@gmail.com
+ * pim_sender.c 
+ *   a pim packet generator, send pim packet one per second
+ *
+ * dropletzhu@gmail.com
  * 
  * ChangeLog
  *  - 2009-06-19
