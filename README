@@ -131,9 +131,18 @@
 	pim source 1.0.0.201; multicast source 1.0.0.201, multicast group
 	224.1.1.1 port 5000
 
+3.10: Test fragment case
+  1) on receiver1
+    ./mlistener -s 2.0.0.201 -g 224.1.1.1 -p 5000 -l 5000
+
+  2) on source
+    ./msender -s 1.0.0.201 -g 224.1.1.1 -p 5000 -t 32 -l 5000
+
+	send 5000 bytes packet
+
 4: Faqs
 4.1: Why default ttl is 1?
- Gateway should not forward packet which's ttl is 1.
+  Gateway should not forward packet which's ttl is 1.
 
 5: Author information
   dropletzhu@gmail.com
