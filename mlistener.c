@@ -50,7 +50,12 @@ void term_handler(int signum)
 
 	printf("Total received:	%u\n", l_count);
 	printf("Total sent:	%u\n", s_total);
-	printf("Total lost:	%u\n", s_total - l_count);
+	/* the s_count may not be updated when interrupt the
+	   process */
+	if( l_count <= s_total )
+		printf("Total lost:	%u\n", s_total - l_count);
+	else
+		printf("Total lost: 0\n");
 
 	exit(0);
 }
