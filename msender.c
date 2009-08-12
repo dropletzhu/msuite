@@ -5,6 +5,9 @@
  * dropletzhu@gamil.com
  *
  * ChangeLog
+ *  - 2009-08-12
+ *		- add ip header manually, because on some linux platform,
+ *        the ipip does not increment when sends packet
  *  - 2009-06-04
  *		- Add '-c' option for sending number of packets
  *		- Show source ip address on command line
@@ -16,12 +19,25 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
 
-#define version "0.2"
+#define version "0.3"
 
 #define IP_LEN 16
 #define PORT_LEN 6
 #define BUF_LEN 65535
+
+csum (unsigned short *buf, int nwords)
+{
+    unsigned long sum;
+    for (sum = 0; nwords > 0; nwords--)
+        sum += *buf++;
+    sum = (sum >> 16) + (sum & 0xffff);
+    sum += (sum >> 16);
+
+    return ~sum;
+}
 
 void usage()
 {
@@ -39,13 +55,17 @@ int
 main (int argc, char *argv[])
 {
 	struct sockaddr_in addr;
-	int fd, cnt, ch, i = 0;
+	int fd, cnt, ch, i = 1;
 	char ttl = 1;
-	struct ip_mreq mreq;
 	char msgbuf[BUF_LEN], source[IP_LEN], group[IP_LEN], port[PORT_LEN];
 	struct in_addr interface_addr;
 	int length = 256;
 	int count = 0;
+	struct ip *iph = (struct ip*)msgbuf;
+	struct udphdr *udp = (struct udphdr*)(msgbuf + sizeof(struct ip));
+	char *payload = msgbuf + sizeof(struct ip) + sizeof(struct udphdr);
+	int hdrincl = 1;
+	int retcode;
 
 	if (argc <= 1)
 	{
@@ -85,9 +105,16 @@ main (int argc, char *argv[])
 	}
 
 	/* create what looks like an ordinary UDP socket */
-	if ((fd = socket (AF_INET, SOCK_DGRAM, 0)) < 0)
+	if ((fd = socket (AF_INET, SOCK_RAW, IPPROTO_UDP)) < 0)
 	{
 		perror ("socket");
+		return -1;
+	}
+
+	/* we need to build ip header manually */
+	retcode = setsockopt(fd, IPPROTO_IP, IP_HDRINCL, &hdrincl, sizeof(hdrincl));
+	if( retcode != 0 ) {
+		perror("setsockopt\n");
 		return -1;
 	}
 
@@ -116,21 +143,47 @@ main (int argc, char *argv[])
 	/* now just sendto() our destination! */
 	while (1)
 	{
-		if ( count && ( i >= count ) ) {
+		memset(msgbuf,0,BUF_LEN);
+
+		/* ip header */
+    	iph->ip_hl = 5;
+    	iph->ip_v = 4;
+    	iph->ip_tos = 0;
+    	iph->ip_len = htons((short)length);
+		if ( i == 0 )
+			iph->ip_id = 0;
+		else
+    		iph->ip_id = htons((short)i);
+    	iph->ip_off = 0;
+    	iph->ip_ttl = ttl;
+    	iph->ip_p = IPPROTO_UDP;
+    	iph->ip_src.s_addr = inet_addr (source);
+    	iph->ip_dst.s_addr = inet_addr (group);
+    	iph->ip_sum = csum((short*)iph,sizeof(struct ip)>>1);
+
+		/* udp header */
+		udp->source = htons((short)atoi(port));
+		udp->dest = htons((short)atoi(port));
+		udp->len = htons((short)(length - sizeof(struct ip)));
+		udp->check = csum((short*)((char*)udp) - 8, 
+				(length - sizeof(struct ip) + 8) >>2);
+
+		if ( count && ( i > count ) ) {
 			break;
 		}
 
-		memset(msgbuf,0,BUF_LEN);
-		snprintf(msgbuf,length,"Sender %s->%s: %d", source, group, i++);
+		/* payload */
+		snprintf(payload,length-sizeof(struct ip)-sizeof(struct udphdr),"Sender %s->%s: %d", source, group, i++);
 
-		if (sendto(fd, msgbuf, length, 0, (struct sockaddr *) &addr, sizeof (addr)) < 0)
+		if (sendto(fd, msgbuf, length, 0, (struct sockaddr *) &addr, 
+					sizeof (addr)) < 0)
 		{
 			perror ("sendto");
 			return -1;
 		}
 		else
 		{
-			printf ("%s\n",msgbuf);
+			printf ("%s\n",payload);
 		}
 		sleep (1);
 	}
