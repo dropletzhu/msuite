@@ -28,6 +28,15 @@
 #define PORT_LEN 6
 #define BUF_LEN 65535
 
+/* udp/tcp pseudo header for checksum */
+typedef struct pseudo_header_ {
+	unsigned int src;
+	unsigned int dst;
+	unsigned char zero;
+	unsigned char proto;
+	unsigned short length;
+}pseudo_header_t;
+
 unsigned short
 csum (unsigned short *buf, int nwords)
 {
@@ -46,7 +55,7 @@ udp_csum(unsigned short *pseudo_header, unsigned short *buf, int nwords)
     unsigned long sum = 0;
 	int  i = 0;
 
-	for ( ; i < 6; i++ )
+	for ( ; i < sizeof(pseudo_header_t)>>1; i++ )
 		sum += *pseudo_header++;
 
     for ( ;nwords > 0; nwords--)
@@ -85,7 +94,7 @@ main (int argc, char *argv[])
 	char *payload = msgbuf + sizeof(struct ip) + sizeof(struct udphdr);
 	int hdrincl = 1;
 	int retcode;
-	unsigned int pseudo_header[3] = {0,0,0};
+	pseudo_header_t pseudo;
 
 	if (argc <= 1)
 	{
@@ -182,28 +191,29 @@ main (int argc, char *argv[])
     	iph->ip_p = IPPROTO_UDP;
     	iph->ip_src.s_addr = inet_addr (source);
     	iph->ip_dst.s_addr = inet_addr (group);
-    	iph->ip_sum = csum((unsigned short*)iph,sizeof(struct ip)>>1);
+    	iph->ip_sum = csum((unsigned short*)iph,
+					sizeof(struct ip)>>1);
 
 		/* udp header */
 		udp->source = htons((short)atoi(port));
 		udp->dest = htons((short)atoi(port));
 		udp->len = htons((short)(length - sizeof(struct ip)));
-		pseudo_header[0] = iph->ip_src.s_addr;
-		pseudo_header[1] = iph->ip_dst.s_addr;
-		pseudo_header[2] = iph->ip_p<<16;
-		pseudo_header[2] |= udp->len;
+		pseudo.src = iph->ip_src.s_addr;
+		pseudo.dst = iph->ip_dst.s_addr;
+		pseudo.zero = 0;
+		pseudo.proto = iph->ip_p;
+		pseudo.length = udp->len;
 
 		/* payload */
-		snprintf(payload,length-sizeof(struct ip)-sizeof(struct udphdr),"Sender %s->%s: %d", source, group, i++);
-#if 0
-		udp->check = 0;
-		udp->check = udp_csum((unsigned short*)pseudo_header,
+		snprintf(payload,
+				length-sizeof(struct ip)-sizeof(struct udphdr),
+				"Sender %s->%s: %d", source, group, i++);
+		udp->check = udp_csum((unsigned short*)&pseudo,
 				(unsigned short*)udp, 
 				(length - sizeof(struct ip))>>1);
 
 		if (udp->check == 0)
 			udp->check = 0xFFFF;
-#endif
 
 		if (sendto(fd, msgbuf, length, 0, (struct sockaddr *) &addr, 
 					sizeof (addr)) < 0)

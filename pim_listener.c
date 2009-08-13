@@ -110,10 +110,10 @@ main (int argc, char* argv[])
 	struct _SPimRegHdr *pim_reg_header;
 	int sockfd;
 	int pim_null_reg = 0, pim_reg = 0, pim_reg_stop = 0;
-	int len,nbytes;
+	int nbytes;
+	unsigned int len;
 	UINT2 *flags;
 	int length = 256;
-	int retcode, addrlen;
 
     if (argc <= 1) {
 		usage();

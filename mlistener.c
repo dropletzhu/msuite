@@ -64,7 +64,8 @@ int
 main (int argc, char *argv[])
 {
 	struct sockaddr_in addr;
-	int fd, nbytes, addrlen, ch, i;
+	int fd, nbytes, ch, i;
+	unsigned int addrlen;
 	struct ip_mreq mreq;
 	char msgbuf[BUF_LEN], source[IP_LEN], group[IP_LEN], port[PORT_LEN];
 	int length = 256;
