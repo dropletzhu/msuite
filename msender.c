@@ -28,6 +28,7 @@
 #define PORT_LEN 6
 #define BUF_LEN 65535
 
+unsigned short
 csum (unsigned short *buf, int nwords)
 {
     unsigned long sum;
@@ -36,7 +37,25 @@ csum (unsigned short *buf, int nwords)
     sum = (sum >> 16) + (sum & 0xffff);
     sum += (sum >> 16);
 
-    return ~sum;
+    return (unsigned short)~sum;
+}
+
+unsigned short
+udp_csum(unsigned short *pseudo_header, unsigned short *buf, int nwords)
+{
+    unsigned long sum = 0;
+	int  i = 0;
+
+	for ( ; i < 6; i++ )
+		sum += *pseudo_header++;
+
+    for ( ;nwords > 0; nwords--)
+        sum += *buf++;
+
+    sum = (sum >> 16) + (sum & 0xffff);
+    sum += (sum >> 16);
+
+    return (unsigned short)~sum;
 }
 
 void usage()
@@ -66,6 +85,7 @@ main (int argc, char *argv[])
 	char *payload = msgbuf + sizeof(struct ip) + sizeof(struct udphdr);
 	int hdrincl = 1;
 	int retcode;
+	unsigned int pseudo_header[3] = {0,0,0};
 
 	if (argc <= 1)
 	{
@@ -143,6 +163,9 @@ main (int argc, char *argv[])
 	/* now just sendto() our destination! */
 	while (1)
 	{
+		if ( count && ( i > count ) ) {
+			break;
+		}
 		memset(msgbuf,0,BUF_LEN);
 
 		/* ip header */
@@ -165,15 +188,22 @@ main (int argc, char *argv[])
 		udp->source = htons((short)atoi(port));
 		udp->dest = htons((short)atoi(port));
 		udp->len = htons((short)(length - sizeof(struct ip)));
-		udp->check = csum((short*)((char*)udp) - 8, 
-				(length - sizeof(struct ip) + 8) >>2);
-
-		if ( count && ( i > count ) ) {
-			break;
-		}
+		pseudo_header[0] = iph->ip_src.s_addr;
+		pseudo_header[1] = iph->ip_dst.s_addr;
+		pseudo_header[2] = iph->ip_p<<16;
+		pseudo_header[2] |= udp->len;
 
 		/* payload */
 		snprintf(payload,length-sizeof(struct ip)-sizeof(struct udphdr),"Sender %s->%s: %d", source, group, i++);
+#if 0
+		udp->check = 0;
+		udp->check = udp_csum((short*)pseudo_header,
+				(short*)udp, 
+				(length - sizeof(struct ip))>>1);
+
+		if (udp->check == 0)
+			udp->check = 0xFFFF;
+#endif
 
 		if (sendto(fd, msgbuf, length, 0, (struct sockaddr *) &addr, 
 					sizeof (addr)) < 0)

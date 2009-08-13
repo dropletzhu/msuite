@@ -152,6 +152,7 @@ typedef struct _SPimSmUnAlignedRegStopMsg {
     tSPimEncUnAlignedUcastAddr  EncUcastAddr;
 }tSPimUnAlignedRegStopMsg;
 
+unsigned short
 csum (unsigned short *buf, int nwords)
 {
 	unsigned long sum;
