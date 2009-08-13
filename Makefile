@@ -5,7 +5,7 @@ SCRIPTS = msource.sh mgroup.sh mpim_rp.sh mpim_source.sh downalias.sh
 DOCS = README	
 VERSION = 0.2.2
 
-CFLAGS = -fno-stack-protector
+CFLAGS = -fno-stack-protector -Wall
 
 all: msender mlistener pim_sender pim_listener
 

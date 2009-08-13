@@ -74,7 +74,7 @@ int
 main (int argc, char *argv[])
 {
 	struct sockaddr_in addr;
-	int fd, cnt, ch, i = 1;
+	int fd, ch, i = 1;
 	char ttl = 1;
 	char msgbuf[BUF_LEN], source[IP_LEN], group[IP_LEN], port[PORT_LEN];
 	struct in_addr interface_addr;
@@ -182,7 +182,7 @@ main (int argc, char *argv[])
     	iph->ip_p = IPPROTO_UDP;
     	iph->ip_src.s_addr = inet_addr (source);
     	iph->ip_dst.s_addr = inet_addr (group);
-    	iph->ip_sum = csum((short*)iph,sizeof(struct ip)>>1);
+    	iph->ip_sum = csum((unsigned short*)iph,sizeof(struct ip)>>1);
 
 		/* udp header */
 		udp->source = htons((short)atoi(port));
@@ -197,8 +197,8 @@ main (int argc, char *argv[])
 		snprintf(payload,length-sizeof(struct ip)-sizeof(struct udphdr),"Sender %s->%s: %d", source, group, i++);
 #if 0
 		udp->check = 0;
-		udp->check = udp_csum((short*)pseudo_header,
-				(short*)udp, 
+		udp->check = udp_csum((unsigned short*)pseudo_header,
+				(unsigned short*)udp, 
 				(length - sizeof(struct ip))>>1);
 
 		if (udp->check == 0)
@@ -217,4 +217,5 @@ main (int argc, char *argv[])
 		}
 		sleep (1);
 	}
+	return 0;
 }
