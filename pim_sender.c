@@ -423,18 +423,6 @@ main (int argc, char* argv[])
 			perror("setsockopt\n");
 			return -1;
 		}
-
-#if 0
-		memset(&local_addr,0,sizeof(struct sockaddr_in));
-		local_addr.sin_family = AF_INET;
-		local_addr.sin_addr.s_addr = inet_addr(local_source);
-
-		retcode = bind(sockfd,(struct sockaddr*)&local_addr, sizeof(struct sockaddr_in));
-		if( retcode != 0 ) {
-			perror("bind\n");
-			return -1;
-		}
-#endif
 	}
 
 	memset(&rp_addr,0,sizeof(struct sockaddr_in));

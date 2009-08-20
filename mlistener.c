@@ -150,7 +150,7 @@ main (int argc, char *argv[])
 			perror ("recvfrom");
 			return -1;
 		}
-		printf ("Receiver %d -- %s\n", l_count++, msgbuf);
+		printf ("Receiver %d -- %s\n", ++l_count, msgbuf);
 		sscanf (msgbuf,"Sender %[0-9.]->%[0-9.]: %d",s_source,s_group,&i);
 		s_count[atoi(s_source) & 0xFF] = i;
 	}
