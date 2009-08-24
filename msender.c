@@ -149,7 +149,7 @@ main (int argc, char *argv[])
 
 	if( manual_header ) {
 		/* set raw socket */
-		fd = socket (AF_INET, SOCK_RAW, 0);
+		fd = socket (AF_INET, SOCK_RAW, IPPROTO_UDP);
 	} else {
 		fd = socket (AF_INET, SOCK_DGRAM, 0 );
 	}
