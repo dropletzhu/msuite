@@ -5,6 +5,10 @@
  * dropletzhu@gamil.com
  *
  * ChangeLog
+ *  - 2009-08-24
+ *		- raw socket with IP_HDRINCL option can not fragment with
+ *		  large packet, do not use manual header when sending large
+ *        packet
  *  - 2009-08-12
  *		- add ip header manually, because on some linux platform,
  *        the ipip does not increment when sends packet
@@ -27,6 +31,7 @@
 #define IP_LEN 16
 #define PORT_LEN 6
 #define BUF_LEN 65535
+#define MTU 1486
 
 /* udp/tcp pseudo header for checksum */
 typedef struct pseudo_header_ {
@@ -89,12 +94,14 @@ main (int argc, char *argv[])
 	struct in_addr interface_addr;
 	int length = 256;
 	int count = 0;
-	struct ip *iph = (struct ip*)msgbuf;
-	struct udphdr *udp = (struct udphdr*)(msgbuf + sizeof(struct ip));
-	char *payload = msgbuf + sizeof(struct ip) + sizeof(struct udphdr);
+	struct ip *iph = NULL;
+	struct udphdr *udp = NULL;
+	char *payload = NULL;
 	int hdrincl = 1;
 	int retcode;
+	int manual_header = 0;
 	pseudo_header_t pseudo;
+	unsigned short sport = (unsigned short)random();
 
 	if (argc <= 1)
 	{
@@ -133,18 +140,33 @@ main (int argc, char *argv[])
 		}
 	}
 
-	/* create what looks like an ordinary UDP socket */
-	if ((fd = socket (AF_INET, SOCK_RAW, IPPROTO_UDP)) < 0)
+	/* raw socket can not send large packet with HDRINCL option */
+	if( length < MTU ) {
+		manual_header = 1;
+	} else {
+		manual_header = 0;
+	}
+
+	if( manual_header ) {
+		/* set raw socket */
+		fd = socket (AF_INET, SOCK_RAW, 0);
+	} else {
+		fd = socket (AF_INET, SOCK_DGRAM, 0 );
+	}
+
+	if (fd < 0)
 	{
 		perror ("socket");
 		return -1;
 	}
 
-	/* we need to build ip header manually */
-	retcode = setsockopt(fd, IPPROTO_IP, IP_HDRINCL, &hdrincl, sizeof(hdrincl));
-	if( retcode != 0 ) {
-		perror("setsockopt\n");
-		return -1;
+	if( manual_header ) {
+		/* we need to build ip header manually */
+		retcode = setsockopt(fd, IPPROTO_IP, IP_HDRINCL, &hdrincl, sizeof(hdrincl));
+		if( retcode != 0 ) {
+			perror("setsockopt\n");
+			return -1;
+		}
 	}
 
 	/* set up source address */
@@ -177,43 +199,53 @@ main (int argc, char *argv[])
 		}
 		memset(msgbuf,0,BUF_LEN);
 
-		/* ip header */
-    	iph->ip_hl = 5;
-    	iph->ip_v = 4;
-    	iph->ip_tos = 0;
-    	iph->ip_len = htons((short)length);
-		if ( i == 0 )
-			iph->ip_id = 0;
-		else
-    		iph->ip_id = htons((short)i);
-    	iph->ip_off = 0;
-    	iph->ip_ttl = ttl;
-    	iph->ip_p = IPPROTO_UDP;
-    	iph->ip_src.s_addr = inet_addr (source);
-    	iph->ip_dst.s_addr = inet_addr (group);
-    	iph->ip_sum = csum((unsigned short*)iph,
+		if( manual_header ) {
+			iph = (struct ip*)msgbuf;
+			udp = (struct udphdr*)(msgbuf + sizeof(struct ip));
+			payload = msgbuf + sizeof(struct ip) + 
+				sizeof(struct udphdr);
+
+			/* ip header */
+    		iph->ip_hl = 5;
+    		iph->ip_v = 4;
+    		iph->ip_tos = 0;
+    		iph->ip_len = htons((short)length);
+			if ( i == 0 )
+				iph->ip_id = 0;
+			else
+    			iph->ip_id = htons((short)i);
+    		iph->ip_off = 0;
+    		iph->ip_ttl = ttl;
+    		iph->ip_p = IPPROTO_UDP;
+    		iph->ip_src.s_addr = inet_addr (source);
+    		iph->ip_dst.s_addr = inet_addr (group);
+    		iph->ip_sum = csum((unsigned short*)iph,
 					sizeof(struct ip)>>1);
 
-		/* udp header */
-		udp->source = htons((short)atoi(port));
-		udp->dest = htons((short)atoi(port));
-		udp->len = htons((short)(length - sizeof(struct ip)));
-		pseudo.src = iph->ip_src.s_addr;
-		pseudo.dst = iph->ip_dst.s_addr;
-		pseudo.zero = 0;
-		pseudo.proto = iph->ip_p;
-		pseudo.length = udp->len;
+			/* udp header */
+			udp->source = htons(sport);
+			udp->dest = htons((short)atoi(port));
+			udp->len = htons((short)(length - sizeof(struct ip)));
+			pseudo.src = iph->ip_src.s_addr;
+			pseudo.dst = iph->ip_dst.s_addr;
+			pseudo.zero = 0;
+			pseudo.proto = iph->ip_p;
+			pseudo.length = udp->len;
 
-		/* payload */
-		snprintf(payload,
+			/* payload */
+			snprintf(payload,
 				length-sizeof(struct ip)-sizeof(struct udphdr),
 				"Sender %s->%s: %d", source, group, i++);
-		udp->check = udp_csum((unsigned short*)&pseudo,
+			udp->check = udp_csum((unsigned short*)&pseudo,
 				(unsigned short*)udp, 
 				(length - sizeof(struct ip))>>1);
 
-		if (udp->check == 0)
-			udp->check = 0xFFFF;
+			if (udp->check == 0)
+				udp->check = 0xFFFF;
+		} else {
+			payload = msgbuf;
+			snprintf(payload,length,"Sender %s->%s: %d", source, group, i++);
+		}
 
 		if (sendto(fd, msgbuf, length, 0, (struct sockaddr *) &addr, 
 					sizeof (addr)) < 0)
