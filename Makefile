@@ -1,13 +1,13 @@
 CC = gcc
 RM = rm
-TARGET = msender mlistener pim_sender pim_listener udpserver udpclient
+TARGET = msender mlistener pim_sender pim_listener udpserver udpclient msender6 mlistener6
 SCRIPTS = msource.sh mgroup.sh mpim_rp.sh mpim_source.sh downalias.sh
-DOCS = README	
-VERSION = 0.3
+DOCS = README
+VERSION = 0.4
 
 CFLAGS = -fno-stack-protector -Wall
 
-all: msender mlistener pim_sender pim_listener udpserver udpclient
+all: msender mlistener pim_sender pim_listener udpserver udpclient msender6 mlistener6
 
 msender:
 	${CC} ${CFLAGS} msender.c -o msender
@@ -26,6 +26,12 @@ udpserver:
 
 udpclient:
 	${CC} ${CFLAGS} udpclient.c -o udpclient
+
+msender6:
+	${CC} ${CFLAGS} msender6.c -o msender6
+
+mlistener6:
+	${CC} ${CFLAGS} mlistener6.c -o mlistener6
 
 tarball:
 	tar czf msuite_${VERSION}.tgz ${TARGET} ${SCRIPTS} ${DOCS}
