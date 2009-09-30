@@ -1,5 +1,5 @@
 /**
- * msender.c 
+ * msender6.c 
  *  send multicast packet one per second
  *
  * dropletzhu@gamil.com
@@ -7,16 +7,6 @@
  * ChangeLog
  *  - 2009-09-27
  *      - copy from msender.c and revise for ipv6
- *  - 2009-08-24
- *		- raw socket with IP_HDRINCL option can not fragment with
- *		  large packet, do not use manual header when sending large
- *        packet
- *  - 2009-08-12
- *		- add ip header manually, because on some linux platform,
- *        the ipip does not increment when sends packet
- *  - 2009-06-04
- *		- Add '-c' option for sending number of packets
- *		- Show source ip address on command line
  */
 
 #include <sys/socket.h>
@@ -27,60 +17,23 @@
 #include <stdio.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+#include <net/if.h>
 
-#define version "0.3"
+#define version "0.1"
 
-#define IP_LEN 35
+#define IP_LEN 40
 #define PORT_LEN 6
 #define BUF_LEN 65535
-#define MTU 1486
-
-/* udp/tcp pseudo header for checksum */
-typedef struct pseudo_header_ {
-	unsigned int src;
-	unsigned int dst;
-	unsigned char zero;
-	unsigned char proto;
-	unsigned short length;
-}pseudo_header_t;
-
-unsigned short
-csum (unsigned short *buf, int nwords)
-{
-    unsigned long sum;
-    for (sum = 0; nwords > 0; nwords--)
-        sum += *buf++;
-    sum = (sum >> 16) + (sum & 0xffff);
-    sum += (sum >> 16);
-
-    return (unsigned short)~sum;
-}
-
-unsigned short
-udp_csum(unsigned short *pseudo_header, unsigned short *buf, int nwords)
-{
-    unsigned long sum = 0;
-	int  i = 0;
-
-	for ( ; i < sizeof(pseudo_header_t)>>1; i++ )
-		sum += *pseudo_header++;
-
-    for ( ;nwords > 0; nwords--)
-        sum += *buf++;
-
-    sum = (sum >> 16) + (sum & 0xffff);
-    sum += (sum >> 16);
-
-    return (unsigned short)~sum;
-}
+#define NAME_LEN 10
 
 void usage()
 {
-    printf("Usage: ./msender -s source -g group -p port -t ttl -l length -c count\n");
-	printf(" -s source	the source ip\n");
+    printf("Usage: ./msender -s source -g group -p port -h hops -l length -c count\n");
+	printf(" -s souruce	the source ip\n");
+	printf(" -i ifname 	the outgoing interface name\n");
 	printf(" -g group	the group ip\n");
 	printf(" -p port	the port\n");
-	printf(" -t ttl		the ttl, default ttl is 1\n");
+	printf(" -h hops	the hops, default hops is 1\n");
 	printf(" -l length	the packet length, default length is 256 bytes\n");
 	printf(" -c count	the packet count, default count is unlimited\n");
     printf(" Version	%s\n",version);
@@ -89,21 +42,14 @@ void usage()
 int
 main (int argc, char *argv[])
 {
-	struct sockaddr_in addr;
+	struct sockaddr_in6 addr;
 	int fd, ch, i = 1;
-	char ttl = 1;
+	int hops = 1;
 	char msgbuf[BUF_LEN], source[IP_LEN], group[IP_LEN], port[PORT_LEN];
-	struct in_addr interface_addr;
+	char ifname[NAME_LEN];
+	unsigned int ifindex = 0;
 	int length = 256;
 	int count = 0;
-	struct ip *iph = NULL;
-	struct udphdr *udp = NULL;
-	char *payload = NULL;
-	int hdrincl = 1;
-	int retcode;
-	int manual_header = 0;
-	pseudo_header_t pseudo;
-	unsigned short sport = (unsigned short)random();
 
 	if (argc <= 1)
 	{
@@ -111,13 +57,17 @@ main (int argc, char *argv[])
 	    return 0;
 	}
 
-	while ((ch = getopt (argc, argv, "s:g:p:t:l:c:")) != -1)
+	while ((ch = getopt (argc, argv, "s:i:g:p:h:l:c:")) != -1)
 	{
 		switch (ch)
 		{
 		case 's':
 			memset(source,0,IP_LEN);
-			strncpy(source, optarg, IP_LEN - 1);
+			strncpy(source, optarg, IP_LEN-1);
+			break;
+		case 'i':
+			memset(ifname,0,NAME_LEN);
+			strncpy(ifname, optarg, NAME_LEN - 1);
 			break;
 		case 'g':
 			memset (group, 0, IP_LEN);
@@ -127,8 +77,8 @@ main (int argc, char *argv[])
 			memset (port, 0, PORT_LEN);
 			strncpy (port, optarg, PORT_LEN - 1);
 			break;
-		case 't':
-			ttl = atoi (optarg);
+		case 'h':
+			hops = atoi (optarg);
 			break;
 		case 'l':
 			length = atoi(optarg);
@@ -142,19 +92,7 @@ main (int argc, char *argv[])
 		}
 	}
 
-	/* raw socket can not send large packet with HDRINCL option */
-	if( length < MTU ) {
-		manual_header = 1;
-	} else {
-		manual_header = 0;
-	}
-
-	if( manual_header ) {
-		/* set raw socket */
-		fd = socket (AF_INET6, SOCK_RAW, IPPROTO_UDP);
-	} else {
-		fd = socket (AF_INET6, SOCK_DGRAM, 0 );
-	}
+	fd = socket (AF_INET6, SOCK_DGRAM, 0 );
 
 	if (fd < 0)
 	{
@@ -162,34 +100,24 @@ main (int argc, char *argv[])
 		return -1;
 	}
 
-	if( manual_header ) {
-		/* we need to build ip header manually */
-		retcode = setsockopt(fd, IPPROTO_IPV6, IP_HDRINCL, &hdrincl, sizeof(hdrincl));
-		if( retcode != 0 ) {
-			perror("setsockopt\n");
-			return -1;
-		}
-	}
-
-	/* set up source address */
-	interface_addr.s_addr = inet_addr (source);
+	ifindex = if_nametoindex(ifname);
 
 	/* set up destination address */
 	memset (&addr, 0, sizeof (addr));
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr (group);
-	addr.sin_port = htons (atoi (port));
+	addr.sin6_family = AF_INET6;
+	inet_pton(AF_INET6,source,&(addr.sin6_addr));
+	addr.sin6_port = htons (atoi (port));
 
-	if (setsockopt(fd, IPPROTO_IPV6, IP_MULTICAST_IF, &interface_addr,
-		 sizeof (interface_addr)))
+	if (setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifindex,
+		 sizeof (ifindex)))
 	{
-		perror ("setsockopt");
+		perror ("setsockopt if");
 		return -1;
 	}
 
-	if (setsockopt(fd, IPPROTO_IPV6, IP_MULTICAST_TTL, &ttl, sizeof (ttl)))
+	if (setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &hops, sizeof (hops)))
 	{
-		perror ("setsockopt");
+		perror ("setsockopt hops");
 		return -1;
 	}
 
@@ -201,53 +129,7 @@ main (int argc, char *argv[])
 		}
 		memset(msgbuf,0,BUF_LEN);
 
-		if( manual_header ) {
-			iph = (struct ip*)msgbuf;
-			udp = (struct udphdr*)(msgbuf + sizeof(struct ip));
-			payload = msgbuf + sizeof(struct ip) + 
-				sizeof(struct udphdr);
-
-			/* ip header */
-    		iph->ip_hl = 5;
-    		iph->ip_v = 4;
-    		iph->ip_tos = 0;
-    		iph->ip_len = htons((short)length);
-			if ( i == 0 )
-				iph->ip_id = 0;
-			else
-    			iph->ip_id = htons((short)i);
-    		iph->ip_off = 0;
-    		iph->ip_ttl = ttl;
-    		iph->ip_p = IPPROTO_UDP;
-    		iph->ip_src.s_addr = inet_addr (source);
-    		iph->ip_dst.s_addr = inet_addr (group);
-    		iph->ip_sum = csum((unsigned short*)iph,
-					sizeof(struct ip)>>1);
-
-			/* udp header */
-			udp->source = htons(sport);
-			udp->dest = htons((short)atoi(port));
-			udp->len = htons((short)(length - sizeof(struct ip)));
-			pseudo.src = iph->ip_src.s_addr;
-			pseudo.dst = iph->ip_dst.s_addr;
-			pseudo.zero = 0;
-			pseudo.proto = iph->ip_p;
-			pseudo.length = udp->len;
-
-			/* payload */
-			snprintf(payload,
-				length-sizeof(struct ip)-sizeof(struct udphdr),
-				"Sender %s->%s: %d", source, group, i++);
-			udp->check = udp_csum((unsigned short*)&pseudo,
-				(unsigned short*)udp, 
-				(length - sizeof(struct ip))>>1);
-
-			if (udp->check == 0)
-				udp->check = 0xFFFF;
-		} else {
-			payload = msgbuf;
-			snprintf(payload,length,"Sender %s->%s: %d", source, group, i++);
-		}
+		snprintf(msgbuf,length,"Sender %s->%s: %d", source, group, i++);
 
 		if (sendto(fd, msgbuf, length, 0, (struct sockaddr *) &addr, 
 					sizeof (addr)) < 0)
@@ -257,7 +139,7 @@ main (int argc, char *argv[])
 		}
 		else
 		{
-			printf ("%s\n",payload);
+			printf ("%s\n",msgbuf);
 		}
 		sleep (1);
 	}

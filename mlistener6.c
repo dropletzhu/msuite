@@ -1,5 +1,5 @@
 /**
- * mlistener.c  
+ * mlistener6.c  
  *  joins a multicast group and echoes all data it receives 
  *
  * dropletzhu@gmail.com
@@ -7,10 +7,6 @@
  * ChangeLog
  *	- 2009-09-27
  *		- copy from mlistener.c and revise for ipv6
- *  - 2009-06-29
- *		- Signal handler for SIGINT, SIGKILL and SIGTERM
- * 	- 2009-06-04
- * 		- Show source and group address on console
  */
 
 #include <sys/socket.h>
@@ -20,10 +16,12 @@
 #include <string.h>
 #include <stdio.h>
 #include <signal.h>
+#include <net/if.h>
 
-#define version "0.3"
-#define IP_LEN 35
+#define version "0.1"
+#define IP_LEN 40
 #define PORT_LEN 6
+#define NAME_LEN 10
 #define BUF_LEN 65535
 
 unsigned int l_count = 0;
@@ -34,8 +32,9 @@ unsigned int s_count[65535];
 
 void usage()
 {
-	printf("Usage: ./mlistener -s source -g group -p port -l length \n");
+	printf("Usage: ./mlistener -s source -i interface -g group -p port -l length \n");
 	printf(" -s souurce	use the source to select bind device\n");
+	printf(" -i ifname	interface name\n");
 	printf(" -g group	the group to listen\n");
 	printf(" -p port	the port to listen\n");
 	printf(" -l length	the packet length, default length is 256 bytes\n");
@@ -65,11 +64,13 @@ void term_handler(int signum)
 int
 main (int argc, char *argv[])
 {
-	struct sockaddr_in addr;
+	struct sockaddr_in6 addr;
 	int fd, nbytes, ch, i;
 	unsigned int addrlen;
-	struct ip_mreq mreq;
+	struct ipv6_mreq mreq;
 	char msgbuf[BUF_LEN], source[IP_LEN], group[IP_LEN], port[PORT_LEN];
+	char ifname[NAME_LEN];
+	unsigned int ifindex;
 	int length = 256;
 	struct sigaction new_action, old_action;
 	char s_source[IP_LEN], s_group[IP_LEN];
@@ -80,13 +81,17 @@ main (int argc, char *argv[])
 		return 0;
 	}
 
-	while ((ch = getopt (argc, argv, "s:g:p:l:")) != -1)
+	while ((ch = getopt (argc, argv, "s:i:g:p:l:")) != -1)
 	{
 		switch (ch)
 		{
 		case 's':
 			memset (source, 0, IP_LEN);
 			strncpy (source, optarg, IP_LEN - 1);
+			break;
+		case 'i':
+			memset (ifname, 0, NAME_LEN);
+			strncpy (ifname, optarg, NAME_LEN - 1);
 			break;
 		case 'g':
 			memset (group, 0, IP_LEN);
@@ -114,9 +119,9 @@ main (int argc, char *argv[])
 
 	/* set up destination address */
 	memset (&addr, 0, sizeof (addr));
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr (group);
-	addr.sin_port = htons (atoi (port));
+	addr.sin6_family = AF_INET6;
+	inet_pton(AF_INET6, group, &(addr.sin6_addr));
+	addr.sin6_port = htons (atoi (port));
 
 	/* bind to receive address */
 	if (bind (fd, (struct sockaddr *) &addr, sizeof (addr)) < 0)
@@ -126,10 +131,11 @@ main (int argc, char *argv[])
 	}
 
 	/* use setsockopt() to request that the kernel join a multicast group */
-	mreq.imr_multiaddr.s_addr = inet_addr (group);
-	mreq.imr_interface.s_addr = inet_addr (source);
+	inet_pton(AF_INET6, group, &(mreq.ipv6mr_multiaddr));
+	ifindex = if_nametoindex(ifname);
+	mreq.ipv6mr_interface = ifindex;
 
-	if (setsockopt (fd, IPPROTO_IPV6, IP_ADD_MEMBERSHIP, &mreq, sizeof (mreq)) < 0)
+	if (setsockopt (fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &mreq, sizeof (mreq)) < 0)
 	{
 		perror ("setsockopt");
 		return -1;
