@@ -105,7 +105,7 @@ main (int argc, char *argv[])
 	/* set up destination address */
 	memset (&addr, 0, sizeof (addr));
 	addr.sin6_family = AF_INET6;
-	inet_pton(AF_INET6,source,&(addr.sin6_addr));
+	inet_pton(AF_INET6,group,&(addr.sin6_addr));
 	addr.sin6_port = htons (atoi (port));
 
 	if (setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifindex,
@@ -129,7 +129,7 @@ main (int argc, char *argv[])
 		}
 		memset(msgbuf,0,BUF_LEN);
 
-		snprintf(msgbuf,length,"Sender %s->%s: %d", source, group, i++);
+		snprintf(msgbuf,length,"Sender %s->%s <>%d", source, group, i++);
 
 		if (sendto(fd, msgbuf, length, 0, (struct sockaddr *) &addr, 
 					sizeof (addr)) < 0)

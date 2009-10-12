@@ -137,7 +137,7 @@ main (int argc, char *argv[])
 
 	if (setsockopt (fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &mreq, sizeof (mreq)) < 0)
 	{
-		perror ("setsockopt");
+		perror ("setsockopt add");
 		return -1;
 	}
 
@@ -159,7 +159,7 @@ main (int argc, char *argv[])
 			return -1;
 		}
 		printf ("Receiver %d -- %s\n", ++l_count, msgbuf);
-		sscanf (msgbuf,"Sender %[0-9.]->%[0-9.]: %d",s_source,s_group,&i);
+		sscanf (msgbuf,"Sender %[0-9.]->%[0-9.] <> %d",s_source,s_group,&i);
 		s_count[atoi(s_source) & 0xFF] = i;
 	}
 }
