@@ -22,9 +22,10 @@ void error(char *msg) {
 }
 
 int main(int argc, char **argv) {
-    int sockfd, portno, n;
+    int sockfd, portno, n, retcode;
     socklen_t serverlen;
     struct sockaddr_in serveraddr;
+    struct sockaddr_in cliaddr;
     struct hostent *server;
     char *hostname;
     char buf[BUFSIZE];
@@ -49,6 +50,15 @@ int main(int argc, char **argv) {
         exit(0);
     }
 
+    bzero((char *) &cliaddr, sizeof(cliaddr));
+    cliaddr.sin_family = AF_INET;
+    cliaddr.sin_port = htons(random()&0xFFFF);
+    retcode = bind(sockfd,(struct sockaddr*)&cliaddr, sizeof(cliaddr));
+    if (retcode != 0 ) {
+        error("ERROR bind");
+        exit(0);
+    }
+
     /* build the server's Internet address */
     bzero((char *) &serveraddr, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
@@ -58,8 +68,7 @@ int main(int argc, char **argv) {
 
     /* get a message from the user */
     bzero(buf, BUFSIZE);
-    printf("Please enter msg: ");
-    fgets(buf, BUFSIZE, stdin);
+    snprintf(buf, BUFSIZE, "Udpclient\n");
 
     /* send the message to the server */
     serverlen = sizeof(serveraddr);

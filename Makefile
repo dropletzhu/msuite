@@ -1,6 +1,7 @@
 CC = gcc
 RM = rm
-TARGET = msender mlistener pim_sender pim_listener udpserver udpclient msender6 mlistener6
+TARGET = msender mlistener pim_sender pim_listener udpserver udpclient msender6 mlistener6\
+         tcpserver tcpclient
 SCRIPTS = msource.sh mgroup.sh mpim_rp.sh mpim_source.sh downalias.sh
 DOCS = README
 VERSION = 0.4
@@ -32,6 +33,12 @@ msender6:
 
 mlistener6:
 	${CC} ${CFLAGS} mlistener6.c -o mlistener6
+
+tcpserver:
+	${CC} ${CFLAGS} tcpserver.c -o tcpserver
+
+tcpclient:
+	${CC} ${CFLAGS} tcpclient.c -o tcpclient
 
 tarball:
 	tar czf msuite_${VERSION}.tgz ${TARGET} ${SCRIPTS} ${DOCS}
