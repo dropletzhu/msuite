@@ -22,7 +22,7 @@ void error(char *msg) {
 }
 
 int main(int argc, char **argv) {
-    int sockfd, portno, n, retcode;
+    int sockfd, sport, dport, n, retcode;
     socklen_t serverlen;
     struct sockaddr_in serveraddr;
     struct sockaddr_in cliaddr;
@@ -31,12 +31,13 @@ int main(int argc, char **argv) {
     char buf[BUFSIZE];
 
     /* check command line arguments */
-    if (argc != 3) {
-       fprintf(stderr,"usage: %s <hostname> <port>\n", argv[0]);
+    if (argc != 4) {
+       fprintf(stderr,"usage: %s <hostname> <sport> <dport>\n", argv[0]);
        exit(0);
     }
     hostname = argv[1];
-    portno = atoi(argv[2]);
+    sport = atoi(argv[2]);
+    dport = atoi(argv[3]);
 
     /* socket: create the socket */
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -52,7 +53,8 @@ int main(int argc, char **argv) {
 
     bzero((char *) &cliaddr, sizeof(cliaddr));
     cliaddr.sin_family = AF_INET;
-    cliaddr.sin_port = htons(random()&0xFFFF);
+    cliaddr.sin_port = htons(sport);
+    printf("source port %d\n",ntohs(cliaddr.sin_port));
     retcode = bind(sockfd,(struct sockaddr*)&cliaddr, sizeof(cliaddr));
     if (retcode != 0 ) {
         error("ERROR bind");
@@ -64,7 +66,7 @@ int main(int argc, char **argv) {
     serveraddr.sin_family = AF_INET;
     bcopy((char *)server->h_addr, 
 	  (char *)&serveraddr.sin_addr.s_addr, server->h_length);
-    serveraddr.sin_port = htons(portno);
+    serveraddr.sin_port = htons(dport);
 
     /* get a message from the user */
     bzero(buf, BUFSIZE);
