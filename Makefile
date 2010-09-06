@@ -1,14 +1,14 @@
 CC = gcc
 RM = rm
-TARGET = msender mlistener pim_sender pim_listener udpserver udpclient msender6 mlistener6\
-         tcpserver tcpclient
+TARGET = msender mlistener pim_sender pim_listener udpserver udpclient msender6\
+         mlistener6 tcpserver tcpclient
 SCRIPTS = msource.sh mgroup.sh mpim_rp.sh mpim_source.sh downalias.sh
 DOCS = README
 VERSION = 0.4
 
 CFLAGS = -fno-stack-protector -Wall
 
-all: msender mlistener pim_sender pim_listener udpserver udpclient msender6 mlistener6
+all: ${TARGET}
 
 msender:
 	${CC} ${CFLAGS} msender.c -o msender
