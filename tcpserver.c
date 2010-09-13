@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+#define MYPORT 9999
 #define BACKLOG 10 
 
 void sigchld_handler(int s)
@@ -70,7 +71,7 @@ int main(int argc, char *argv[ ])
     /* accept() loop */
     while(1) {
         sin_size = sizeof(struct sockaddr_in);
-        if((new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
+        if((new_fd = accept(sockfd, (struct sockaddr *)&their_addr,(socklen_t*)&sin_size)) == -1) {
             perror("Server-accept() error");
             continue;
         } else {

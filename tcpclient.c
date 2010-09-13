@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 
 #define BUFSIZE 1024
+#define PORT    9999
 
 int main(int argc, char *argv[])
 {
