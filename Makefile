@@ -6,7 +6,7 @@ SCRIPTS = msource.sh mgroup.sh mpim_rp.sh mpim_source.sh downalias.sh
 DOCS = README
 VERSION = 0.4
 
-CFLAGS = -fno-stack-protector -Wall
+CFLAGS = -Wall
 
 all: ${TARGET}
 
