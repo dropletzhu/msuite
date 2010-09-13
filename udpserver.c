@@ -15,24 +15,16 @@
 
 #define BUFSIZE 1024
 
-/*
- * error - wrapper for perror
- */
-void error(char *msg) {
-  perror(msg);
-  exit(1);
-}
-
 int main(int argc, char **argv) {
-  int sockfd; /* socket */
-  int portno; /* port to listen on */
-  unsigned int clientlen; /* byte size of client's address */
-  struct sockaddr_in serveraddr; /* server's addr */
-  struct sockaddr_in clientaddr; /* client addr */
-  char buf[BUFSIZE]; /* message buf */
-  char *hostaddrp; /* dotted decimal host addr string */
-  int optval; /* flag value for setsockopt */
-  int n; /* message byte size */
+  int sockfd;
+  int portno;
+  unsigned int clientlen;
+  struct sockaddr_in serveraddr;
+  struct sockaddr_in clientaddr;
+  char buf[BUFSIZE];
+  char *hostaddrp;
+  int optval;
+  int n;
 
   /* 
    * check command line arguments 
@@ -48,13 +40,8 @@ int main(int argc, char **argv) {
    */
   sockfd = socket(AF_INET, SOCK_DGRAM, 0);
   if (sockfd < 0) 
-    error("ERROR opening socket");
+    perror("ERROR opening socket");
 
-  /* setsockopt: Handy debugging trick that lets 
-   * us rerun the server immediately after we kill it; 
-   * otherwise we have to wait about 20 secs. 
-   * Eliminates "ERROR on binding: Address already in use" error. 
-   */
   optval = 1;
   setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, 
 	     (const void *)&optval , sizeof(int));
@@ -72,14 +59,13 @@ int main(int argc, char **argv) {
    */
   if (bind(sockfd, (struct sockaddr *) &serveraddr, 
 	   sizeof(serveraddr)) < 0) 
-    error("ERROR on binding");
+    perror("ERROR on binding");
 
   /* 
    * main loop: wait for a datagram, then echo it
    */
   clientlen = sizeof(clientaddr);
   while (1) {
-
     /*
      * recvfrom: receive a UDP datagram from a client
      */
@@ -87,13 +73,12 @@ int main(int argc, char **argv) {
     n = recvfrom(sockfd, buf, BUFSIZE, 0,
 		 (struct sockaddr *) &clientaddr, &clientlen);
     if (n < 0)
-      error("ERROR in recvfrom");
+      perror("ERROR in recvfrom");
 
     hostaddrp = inet_ntoa(clientaddr.sin_addr);
     if (hostaddrp == NULL)
-      error("ERROR on inet_ntoa\n");
-    printf("server received datagram from %s\n", hostaddrp);
-    printf("server received %d/%d bytes: %s\n", strlen(buf), n, buf);
+      perror("ERROR on inet_ntoa\n");
+    printf("server received datagram from %s, %s\n", hostaddrp, buf);
     
     /* 
      * sendto: echo the input back to the client 
@@ -101,6 +86,6 @@ int main(int argc, char **argv) {
     n = sendto(sockfd, buf, strlen(buf), 0, 
 	       (struct sockaddr *) &clientaddr, clientlen);
     if (n < 0) 
-      error("ERROR in sendto");
+      perror("ERROR in sendto");
   }
 }

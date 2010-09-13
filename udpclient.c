@@ -13,14 +13,6 @@
 
 #define BUFSIZE 1024
 
-/* 
- * error - wrapper for perror
- */
-void error(char *msg) {
-    perror(msg);
-    exit(0);
-}
-
 int main(int argc, char **argv) {
     int sockfd, sport, dport, n, retcode;
     socklen_t serverlen;
@@ -42,7 +34,7 @@ int main(int argc, char **argv) {
     /* socket: create the socket */
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) 
-        error("ERROR opening socket");
+        perror("ERROR opening socket");
 
     /* gethostbyname: get the server's DNS entry */
     server = gethostbyname(hostname);
@@ -57,7 +49,7 @@ int main(int argc, char **argv) {
     printf("source port %d\n",ntohs(cliaddr.sin_port));
     retcode = bind(sockfd,(struct sockaddr*)&cliaddr, sizeof(cliaddr));
     if (retcode != 0 ) {
-        error("ERROR bind");
+        perror("ERROR bind");
         exit(0);
     }
 
@@ -76,12 +68,12 @@ int main(int argc, char **argv) {
     serverlen = sizeof(serveraddr);
     n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&serveraddr, serverlen);
     if (n < 0) 
-      error("ERROR in sendto");
+      perror("ERROR in sendto");
     
     /* print the server's reply */
     n = recvfrom(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&serveraddr, &serverlen);
     if (n < 0) 
-      error("ERROR in recvfrom");
+      perror("ERROR in recvfrom");
     printf("Echo from server: %s", buf);
     return 0;
 }
