@@ -1,16 +1,28 @@
-#!/bin/sh
+#!/bin/bash
+
+function usage() {
+    printf "Usage: ./udploop.sh server_ip server_port connection_count\n"
+    exit
+}
+
+if (( $# != 3 )) ;
+then
+    usage
+fi
+
+server_ip=$1
+server_port=$2
+connection_count=$3
 
 #
-# Loop to create 65535 sessions
-# Udp server listen on 9999 
-# Destination address is 2.0.0.2, change it for your case
+# Loop to create $connection_count udp connections to $server_ip/$server_port
 #
-for ((i=1; i<65535; i++))
+for ((i=1024; i<$connection_count+1024; i++))
 do
-    ./udpclient 2.0.0.2 ${i} 9999 &
+    ./udpclient $server_ip ${i} $server_port &
 
-    if (( i&0xFF == 0)); then
-	sleep 1
+    if (( ${i}&0xFF == 0)); then
+	    sleep 2
         echo  "Sleep......\n"
     fi
 done
