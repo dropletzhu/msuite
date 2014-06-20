@@ -9,7 +9,6 @@
 #include <sys/socket.h>
 
 #define BUFSIZE 1024
-#define PORT    9999
 
 int main(int argc, char *argv[])
 {
@@ -17,9 +16,10 @@ int main(int argc, char *argv[])
     char buf[BUFSIZE];
     struct hostent *he;
     struct sockaddr_in their_addr;
+	int port;
 
-    if(argc != 2) {
-        fprintf(stderr, "Client-Usage: %s the_client_hostname\n", argv[0]);
+    if(argc != 3) {
+        fprintf(stderr, "Usage: ./tcpclient hostname port\n");
         exit(1);
     }
 
@@ -30,6 +30,8 @@ int main(int argc, char *argv[])
         printf("Client-The remote host is: %s\n", argv[1]);
     }
 
+	port = argv[2];
+
     if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("socket()");
         exit(1);
@@ -38,7 +40,7 @@ int main(int argc, char *argv[])
     }
 
     their_addr.sin_family = AF_INET;
-    their_addr.sin_port = htons(PORT);
+    their_addr.sin_port = htons(port);
     their_addr.sin_addr = *((struct in_addr *)he->h_addr);
     memset(&(their_addr.sin_zero), '\0', 8);
 

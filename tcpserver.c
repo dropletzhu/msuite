@@ -10,12 +10,41 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define MYPORT 9999
 #define BACKLOG 10 
 
 void sigchld_handler(int s)
 {
     while(wait(NULL) > 0);
+}
+
+void child_process(int socket_fd)
+{
+	int result;
+	fd_set readset;
+	char buffer[2048];
+
+	while (1) {
+		do {
+			FD_ZERO(&readset);
+			FD_SET(socket_fd, &readset);
+			result = select(socket_fd + 1, &readset, NULL, NULL, NULL);
+		} while (result == -1 && errno == EINTR);
+
+		if (result > 0) {
+			if (FD_ISSET(socket_fd, &readset)) {
+				do {
+					result = recv(socket_fd, buffer, 2048, 0);
+				} while (result > 0);
+
+				if (result < 0) {
+					printf("Error on recv(): %s\n", strerror(errno));
+				}
+			}
+		} else if (result < 0) {
+			printf("Error on select(): %s\n", strerror(errno));
+			break;
+		}
+	}
 }
 
 int main(int argc, char *argv[ ])
@@ -26,6 +55,13 @@ int main(int argc, char *argv[ ])
     int sin_size;
     struct sigaction sa;
     int yes = 1;
+	int port;
+
+	if (argc != 2) {
+		printf("Usage: ./tcpserver port\n");
+		return -1;
+	}
+	port = atoi(argv[1]);
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("Server-socket() error lol!");
@@ -42,7 +78,7 @@ int main(int argc, char *argv[ ])
     }
 
     my_addr.sin_family = AF_INET;
-    my_addr.sin_port = htons(MYPORT);
+    my_addr.sin_port = htons(port);
     my_addr.sin_addr.s_addr = INADDR_ANY;
     memset(&(my_addr.sin_zero), '\0', 8);
 
@@ -82,9 +118,7 @@ int main(int argc, char *argv[ ])
         /* this is the child process */
         if(!fork()) {
             close(sockfd);
-            if(send(new_fd, "This is a test string from server!\n", 37, 0) == -1) {
-                perror("Server-send() error lol!");
-            }
+			child_process(new_fd);
             close(new_fd);
             exit(0);
         } else {
