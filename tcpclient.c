@@ -7,59 +7,100 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 
-#define BUFSIZE 1024
+void short_lived_connection(int sockfd)
+{
+	char buffer[512];
+	int retcode;
+
+	memset(buffer, 0, 512);
+	retcode = send(sockfd, buffer, 512, 0);
+	printf("send %d bytes\n", retcode);
+
+	retcode = recv(sockfd, buffer, 512, 0);
+	printf("recv %d bytes\n", retcode);
+}
+
+void long_lived_connection(int sockfd)
+{
+	char buffer[1024];
+	int retcode;
+
+	memset(buffer, 0, 1024);
+	while (1) {
+		retcode = send(sockfd, buffer, 1024, 0);
+		if (retcode < 0) {
+			perror("send()");
+			break;
+		}
+	}
+}
+
+void usage()
+{
+	printf("Usage: ./tcpclient -s [server_ip] -p [port] -l\n");
+	printf(" -s	server ip address\n");
+	printf(" -p  server port\n");
+	printf(" -l  long-lived connection, by default, it is short-lived echo connection\n");
+}
 
 int main(int argc, char *argv[])
 {
-    int sockfd, numbytes;
-    char buf[BUFSIZE];
-    struct hostent *he;
+    int sockfd;
     struct sockaddr_in their_addr;
+	struct in_addr server_ip;
 	int port;
+	char ch;
+	int retcode;
+	int long_lived = 0;
 
-    if(argc != 3) {
-        fprintf(stderr, "Usage: ./tcpclient hostname port\n");
-        exit(1);
+    if (argc < 2) {
+        usage();
+        return -1;
     }
 
-    if((he=gethostbyname(argv[1])) == NULL) {
-        perror("gethostbyname()");
-        exit(1);
-    } else {
-        printf("Client-The remote host is: %s\n", argv[1]);
+    while ((ch = getopt (argc, argv, "s:p:l")) != -1) {
+        switch (ch) {
+		case 's':
+			retcode = inet_aton(optarg, &server_ip);
+			if (retcode == 0) {
+				printf("wrong address format\n");
+				return -1;
+			}
+        case 'p':
+            port = atoi(optarg);
+            break;
+        case 'l':
+            long_lived = 1;
+            break;
+        default:
+            usage();
+            return -1;
+        }
     }
-
-	port = argv[2];
 
     if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("socket()");
-        exit(1);
-    } else {
-        printf("Client-The socket() sockfd is OK...\n");
+        exit(-1);
     }
 
     their_addr.sin_family = AF_INET;
     their_addr.sin_port = htons(port);
-    their_addr.sin_addr = *((struct in_addr *)he->h_addr);
+    their_addr.sin_addr.s_addr = server_ip.s_addr;
     memset(&(their_addr.sin_zero), '\0', 8);
 
     if(connect(sockfd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1) {
         perror("connect()");
-        exit(1);
-    } else {
-        printf("Client-The connect() is OK...\n");
+        exit(-1);
     }
+
+	if (long_lived) {
+		long_lived_connection(sockfd);
+	} else {
+		short_lived_connection(sockfd);
+	}
  
-    if((numbytes = recv(sockfd, buf, BUFSIZE-1, 0)) == -1) {
-        perror("recv()");
-        exit(1);
-    } else {
-        printf("Client-The recv() is OK...\n");
-    }
-    buf[numbytes] = '\0';
-    printf("Client-Received: %s", buf);
-    printf("Client-Closing sockfd\n");
     close(sockfd);
     return 0;
 }

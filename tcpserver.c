@@ -17,7 +17,21 @@ void sigchld_handler(int s)
     while(wait(NULL) > 0);
 }
 
-void child_process(int socket_fd)
+void echo_server(int socket_fd)
+{
+	int result;
+	char buffer[512];
+
+	memset(buffer, 0, 512);
+
+	result = recv(socket_fd, buffer, 512, 0);
+	printf("recv %d\n", result);
+
+	result = send(socket_fd, buffer, 512, 0);
+	printf("send %d\n", result);
+}
+
+void long_lived_server(int socket_fd)
 {
 	int result;
 	fd_set readset;
@@ -47,6 +61,13 @@ void child_process(int socket_fd)
 	}
 }
 
+void usage()
+{
+	printf("Usage: ./tcpserver -p [port] -l\n");
+	printf("  -p [port]		listen on this port\n");
+	printf("  -l			create long-lived connection, by default, it is short-lived echo connection\n");
+}
+
 int main(int argc, char *argv[ ])
 {
     int sockfd, new_fd;
@@ -56,12 +77,27 @@ int main(int argc, char *argv[ ])
     struct sigaction sa;
     int yes = 1;
 	int port;
+	char ch;
+	int long_lived = 0;
 
-	if (argc != 2) {
-		printf("Usage: ./tcpserver port\n");
+	if (argc < 2) {
+		usage();
 		return -1;
 	}
-	port = atoi(argv[1]);
+
+	while ((ch = getopt (argc, argv, "p:l")) != -1) {
+        switch (ch) {
+        case 'p':
+			port = atoi(optarg);
+            break;
+		case 'l':
+			long_lived = 1;
+			break;
+		default:
+			usage();
+			return -1;
+		}
+	}
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("Server-socket() error lol!");
@@ -110,20 +146,23 @@ int main(int argc, char *argv[ ])
         if((new_fd = accept(sockfd, (struct sockaddr *)&their_addr,(socklen_t*)&sin_size)) == -1) {
             perror("Server-accept() error");
             continue;
-        } else {
-            printf("Server-accept() is OK...\n");
         }
-        printf("Server: Got connection from %s\n", inet_ntoa(their_addr.sin_addr));
+
+        printf("Server: Got connection from %s-%d\n", inet_ntoa(their_addr.sin_addr), ntohs(their_addr.sin_port));
 
         /* this is the child process */
         if(!fork()) {
             close(sockfd);
-			child_process(new_fd);
+			/* create long lived connection or echo connection */
+			if (long_lived) {
+				long_lived_server(new_fd);
+			} else {
+				echo_server(new_fd);
+			}
             close(new_fd);
             exit(0);
         } else {
             close(new_fd);
-            printf("Server-new socket, new_fd closed successfully...\n");
         }
     }
     return 0;
